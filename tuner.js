@@ -36,10 +36,11 @@ const btnStop = document.getElementById('btn-stop');
 const btnTestTone = document.getElementById('btn-test-tone');
 const btnCalibration = document.getElementById('btn-calibration');
 const calFreqDisplay = document.getElementById('cal-freq');
+const menuCalFreqDisplay = document.getElementById('menu-cal-freq');
+const btnTuneDown = document.getElementById('btn-tune-down');
+const btnTuneUp = document.getElementById('btn-tune-up');
 
 // Elementos de Selección de Nota a Afinar y Escuchar
-const btnToggleMode = document.getElementById('btn-toggle-mode');
-const modeLabel = document.getElementById('mode-label');
 const btnListenActiveNote = document.getElementById('btn-listen-active-note');
 const listenBtnLabel = document.getElementById('listen-btn-label');
 const octaveButtons = document.querySelectorAll('.octave-btn');
@@ -70,11 +71,58 @@ const ctx = canvas.getContext('2d');
 btnStart.addEventListener('click', startTuner);
 btnStop.addEventListener('click', stopTuner);
 
-// Botón de acceso rápido a La 4
+// Botón para mostrar u ocultar el menú de sonidos de referencia
 if (btnTestTone) {
     btnTestTone.addEventListener('click', () => {
-        selectNote(9, 4);
-        toggleListenActiveNote();
+        const refMenu = document.getElementById('ref-tone-menu');
+        if (refMenu.style.display === 'none') {
+            refMenu.style.display = 'block';
+            btnTestTone.classList.add('active'); 
+        } else {
+            refMenu.style.display = 'none';
+            btnTestTone.classList.remove('active');
+            if (isPlayingTone) {
+                stopTone();
+            }
+        }
+    });
+}
+
+// Botón para mostrar u ocultar el menú de calibración de afinación
+if (btnCalibration) {
+    btnCalibration.addEventListener('click', () => {
+        const tuningMenu = document.getElementById('tuning-menu');
+        if (tuningMenu.style.display === 'none') {
+            tuningMenu.style.display = 'block';
+            btnCalibration.classList.add('active');
+        } else {
+            tuningMenu.style.display = 'none';
+            btnCalibration.classList.remove('active');
+        }
+    });
+}
+
+// Lógica para los botones +/- de afinación
+function updateCalibration(newFreq) {
+    // Se limita el ajuste a un máximo de 100 de cada lado internamente sin notificarlo visualmente
+    if (newFreq >= 340 && newFreq <= 540) {
+        A4_FREQUENCY = newFreq;
+        calFreqDisplay.innerText = A4_FREQUENCY;
+        if (menuCalFreqDisplay) menuCalFreqDisplay.innerText = A4_FREQUENCY;
+        // Refrescar el cálculo de la nota seleccionada con la nueva frecuencia
+        selectNote(selectedNoteIndex, activeOctave);
+    }
+}
+
+if (btnTuneDown) {
+    btnTuneDown.addEventListener('click', () => {
+        updateCalibration(A4_FREQUENCY - 1);
+    });
+}
+
+if (btnTuneUp) {
+    btnTuneUp.addEventListener('click', () => {
+        updateCalibration(A4_FREQUENCY + 1);
     });
 }
 
@@ -82,8 +130,6 @@ if (btnTestTone) {
 if (btnListenActiveNote) {
     btnListenActiveNote.addEventListener('click', toggleListenActiveNote);
 }
-
-// btn-toggle-mode ya no existe en esta versión (siempre auto)
 
 // Selector de octavas (2, 3, 4, 5)
 octaveButtons.forEach(btn => {
@@ -101,19 +147,7 @@ noteKeys.forEach(key => {
     });
 });
 
-// Calibración de frecuencia A4 (442 Hz / 440 Hz)
-if (btnCalibration) {
-    btnCalibration.addEventListener('click', () => {
-        // Alternar entre 442 Hz (orquestal) y 440 Hz (estándar internacional)
-        A4_FREQUENCY = A4_FREQUENCY === 442 ? 440 : 442;
-        calFreqDisplay.innerText = A4_FREQUENCY;
-        btnCalibration.classList.toggle('cal-440', A4_FREQUENCY === 440);
-        selectNote(selectedNoteIndex, activeOctave);
-    });
-}
-
 // Configurar Canvas con escalado nítido para pantallas de alta densidad
-// IMPORTANTE: resetear el transform antes de cada scale para no acumularlo
 const DPR = window.devicePixelRatio || 1;
 function setupCanvas() {
     const cssW = 640;
@@ -122,7 +156,7 @@ function setupCanvas() {
     canvas.height = cssH * DPR;
     canvas.style.width  = cssW + 'px';
     canvas.style.height = cssH + 'px';
-    ctx.setTransform(DPR, 0, 0, DPR, 0, 0); // resetea Y aplica escala sin acumular
+    ctx.setTransform(DPR, 0, 0, DPR, 0, 0); 
 }
 setupCanvas();
 window.addEventListener('resize', () => {
@@ -132,7 +166,6 @@ window.addEventListener('resize', () => {
 
 // --- GENERADOR Y SELECCIÓN DE NOTA A ESCUCHAR ---
 function calculateNoteFrequency(noteIndex, octave) {
-    // La nota La 4 corresponde al número MIDI 69
     const midiNote = (octave + 1) * 12 + noteIndex;
     return A4_FREQUENCY * Math.pow(2, (midiNote - 69) / 12);
 }
@@ -141,7 +174,6 @@ function selectNote(noteIndex, octave) {
     selectedNoteIndex = noteIndex;
     activeOctave = octave;
 
-    // Actualizar botones de nota y octava en la interfaz
     noteKeys.forEach((key, idx) => {
         key.classList.toggle('active', idx === noteIndex);
     });
@@ -152,14 +184,12 @@ function selectNote(noteIndex, octave) {
     const targetFreq = calculateNoteFrequency(selectedNoteIndex, activeOctave);
     const noteLabel = `${NOTE_STRINGS[selectedNoteIndex]} ${activeOctave}`;
 
-    // Actualizar pantalla digital y frecuencia objetivo de inmediato
     noteName.innerText = NOTE_STRINGS[selectedNoteIndex];
     noteOctave.innerText = activeOctave;
     targetFreqDisplay.innerText = targetFreq.toFixed(2);
 
     if (isPlayingTone) {
         listenBtnLabel.innerText = `■ DETENER SONIDO (${noteLabel} • ${targetFreq.toFixed(1)} Hz)`;
-        // Transición suave de frecuencia sin clics
         if (toneOscillator && audioContext) {
             toneOscillator.frequency.setTargetAtTime(targetFreq, audioContext.currentTime, 0.025);
         }
@@ -206,10 +236,8 @@ async function toggleListenActiveNote() {
         toneGain.gain.setValueAtTime(0.001, audioContext.currentTime);
         toneGain.gain.exponentialRampToValueAtTime(0.12, audioContext.currentTime + 0.03);
 
-        // Conectar al analizador para procesarlo en el afinador
         toneOscillator.connect(toneGain);
         toneGain.connect(analyser);
-        // Conectar a los altavoces para referencia audible
         toneGain.connect(audioContext.destination);
 
         toneOscillator.start();
@@ -262,7 +290,6 @@ function stopTone() {
     }
 }
 
-// Inicializar selección por defecto en La 4
 selectNote(9, 4);
 
 // --- INICIALIZACIÓN DEL SISTEMA DE MICRÓFONO ---
@@ -285,7 +312,6 @@ async function startTuner() {
             }
         });
 
-        // Crear filtros de limpieza acústica (elimina rumble por debajo de 35Hz y ruido por encima de 3000Hz)
         highPassFilter = audioContext.createBiquadFilter();
         highPassFilter.type = 'highpass';
         highPassFilter.frequency.value = 35;
@@ -334,7 +360,6 @@ function stopTuner() {
     btnStart.disabled = false;
     btnStop.disabled = true;
 
-    // Resetear UI
     hasActiveSignal = false;
     isCurrentlyTuned = false;
     currentCents = 0;
@@ -365,34 +390,28 @@ function stopTuner() {
 }
 
 // ============================================================================
-// ALGORITMO YIN DE DETECCIÓN FUNDAMENTAL DE TONO (Pitch Detection)
-// Referencia: De Cheveigné & Kawahara (2002)
+// ALGORITMO YIN DE DETECCIÓN FUNDAMENTAL DE TONO
 // ============================================================================
 function detectPitchYIN(buffer, sampleRate) {
     const bufferSize = buffer.length;
 
-    // 1. Calcular RMS (Volumen de la señal)
     let sumSquares = 0;
     for (let i = 0; i < bufferSize; i++) {
         sumSquares += buffer[i] * buffer[i];
     }
     const rms = Math.sqrt(sumSquares / bufferSize);
 
-    // Umbral de puerta de ruido (Noise Gate)
     if (rms < 0.012) {
         return { freq: -1, confidence: 0, rms };
     }
 
-    // Tamaño de la ventana de integración y desfase máximo
     const windowSize = 1024;
-    // tauMax ~ 1000 cubre frecuencias tan graves como 44.1 Hz (Mi de bajo)
     const tauMax = Math.min(1000, bufferSize - windowSize);
-    const tauMin = 10; // ~4000 Hz
+    const tauMin = 10; 
 
     const yinBuffer = new Float32Array(tauMax);
     yinBuffer[0] = 1;
 
-    // 2. Función de Diferencia al Cuadrado d(tau)
     for (let tau = tauMin; tau < tauMax; tau++) {
         let diff = 0;
         for (let j = 0; j < windowSize; j++) {
@@ -402,20 +421,17 @@ function detectPitchYIN(buffer, sampleRate) {
         yinBuffer[tau] = diff;
     }
 
-    // 3. Diferencia Normalizada de Media Acumulativa (CMNDF)
     let runningSum = 0;
     for (let tau = 1; tau < tauMax; tau++) {
         runningSum += yinBuffer[tau];
         yinBuffer[tau] = runningSum === 0 ? 1 : (yinBuffer[tau] * tau) / runningSum;
     }
 
-    // 4. Búsqueda del primer mínimo absoluto bajo umbral (elimina saltos de octava)
     const YIN_THRESHOLD = 0.15;
     let tauSelected = -1;
 
     for (let tau = tauMin; tau < tauMax; tau++) {
         if (yinBuffer[tau] < YIN_THRESHOLD) {
-            // Descender hasta el mínimo local exacto
             while (tau + 1 < tauMax && yinBuffer[tau + 1] < yinBuffer[tau]) {
                 tau++;
             }
@@ -424,7 +440,6 @@ function detectPitchYIN(buffer, sampleRate) {
         }
     }
 
-    // Si ningún valor estuvo bajo el umbral estricto, buscar el mínimo global con tolerancia secundaria
     if (tauSelected === -1) {
         let minVal = 1;
         let bestTau = -1;
@@ -441,7 +456,6 @@ function detectPitchYIN(buffer, sampleRate) {
         }
     }
 
-    // 5. Interpolación Parabólica para resolución sub-muestra
     let refinedTau = tauSelected;
     if (tauSelected > 0 && tauSelected < tauMax - 1) {
         const s0 = yinBuffer[tauSelected - 1];
@@ -475,7 +489,6 @@ function updateTuner() {
         hasActiveSignal = true;
         framesWithoutSignal = 0;
 
-        // Suavizado exponencial del tono fundamental
         if (smoothedFreq === 0 || Math.abs(rawFreq - smoothedFreq) > 30) {
             smoothedFreq = rawFreq;
         } else {
@@ -484,36 +497,22 @@ function updateTuner() {
 
         const freq = smoothedFreq;
 
-        // --------------------------------------------------------------------
-        // DETECCIÓN AUTOMÁTICA: Siempre detecta la nota cromática más cercana
-        // El menú de notas es SOLO para reproducir tonos de referencia.
-        // --------------------------------------------------------------------
         const noteNum   = 12 * (Math.log(freq / A4_FREQUENCY) / Math.log(2));
         const noteIndex = Math.round(noteNum) + 69;
         const noteString = NOTE_STRINGS[((noteIndex % 12) + 12) % 12];
         const octave     = Math.floor(noteIndex / 12) - 1;
         const targetFreq = A4_FREQUENCY * Math.pow(2, (noteIndex - 69) / 12);
 
-        // Desviación en cents en punto flotante
         targetCents = 1200 * Math.log2(freq / targetFreq);
-        // Limitar dentro de [-50, +50] para el indicador analógico
         targetCents = Math.max(-50, Math.min(50, targetCents));
 
-        // Diferencia física exacta en Hz respecto al centro objetivo (0 Hz)
         const deltaHz = freq - targetFreq;
         const absDeltaHz = Math.abs(deltaHz);
         const absCents = Math.abs(targetCents);
 
-        // ====================================================================
-        // REGLA ESTRICTA DE TOLERANCIA DE 10 HZ:
-        // Solo es verde (afinado) si está DENTRO de los 10 Hz (absDeltaHz <= 10.0)
-        // Y DENTRO de 10 en la escala del dial (absCents <= 10.0).
-        // DESPUÉS DE LOS 10 HZ (o > 10 en dial), NUNCA ES VERDE: ES AGUDO O GRAVE.
-        // ====================================================================
         const TOLERANCIA_MAXIMA = 10.0;
         isCurrentlyTuned = (absDeltaHz <= TOLERANCIA_MAXIMA) && (absCents <= TOLERANCIA_MAXIMA);
 
-        // Actualizar valores numéricos en la interfaz
         noteName.innerText = noteString;
         noteOctave.innerText = octave;
         freqDisplay.innerText = freq.toFixed(2);
@@ -528,7 +527,6 @@ function updateTuner() {
             hzDiffDisplay.style.color = isCurrentlyTuned ? "#00ff88" : (targetCents < 0 ? "#ff9d00" : "#ff4757");
         }
 
-        // Calidad de señal
         if (result.confidence > 0.85) {
             signalDisplay.innerText = "EXCELENTE";
             signalDisplay.style.color = "#00ff88";
@@ -537,9 +535,7 @@ function updateTuner() {
             signalDisplay.style.color = "#ff9d00";
         }
 
-        // --- LÓGICA DE ESTADOS VISUALES (BEMOL / AFINADO AL CENTRO / SOSTENIDO) ---
         if (isCurrentlyTuned) {
-            // == AFINADO VÁLIDO DENTRO DE LA TOLERANCIA DE ±10 HZ ==
             tunerDashboard.classList.add('in-tune');
             noteContainer.className = "note-container in-tune";
 
@@ -557,7 +553,6 @@ function updateTuner() {
             guideFlat.className = "guide-item guide-flat";
             guideSharp.className = "guide-item guide-sharp";
         } else if (deltaHz < 0) {
-            // == BEMOL / GRAVE (Subir afinación - Desviación mayor a 10 Hz hacia abajo) ==
             tunerDashboard.classList.remove('in-tune');
             noteContainer.className = "note-container flat";
 
@@ -571,7 +566,6 @@ function updateTuner() {
             guideCenter.className = "guide-item guide-center";
             guideSharp.className = "guide-item guide-sharp";
         } else {
-            // == SOSTENIDO / AGUDO (Bajar afinación - Desviación mayor a 10 Hz hacia arriba) ==
             tunerDashboard.classList.remove('in-tune');
             noteContainer.className = "note-container sharp";
 
@@ -586,12 +580,10 @@ function updateTuner() {
             guideFlat.className = "guide-item guide-flat";
         }
     } else {
-        // En ausencia de señal clara
         framesWithoutSignal++;
         if (framesWithoutSignal > 16) {
             hasActiveSignal = false;
             isCurrentlyTuned = false;
-            // Desvanecer aguja hacia la posición neutral suavemente
             targetCents += (0 - targetCents) * 0.08;
 
             tuningStatus.innerText = "ESCUCHANDO...";
@@ -614,7 +606,6 @@ function updateTuner() {
         }
     }
 
-    // Suavizado dinámico de la aguja con interpolación no lineal (Lerp)
     const lerpSpeed = hasActiveSignal ? 0.22 : 0.06;
     currentCents += (targetCents - currentCents) * lerpSpeed;
 
@@ -623,45 +614,34 @@ function updateTuner() {
 }
 
 function getNeedleColor(cents, isTuned) {
-    if (isTuned) return "#00ff88"; // Verde Neón (Dentro de tolerancia ±10 Hz)
-    if (Math.abs(cents) <= 22) return "#ffaa00"; // Ámbar / Alerta leve
-    return "#ff4757"; // Rojo Coral / Desviación alta
+    if (isTuned) return "#00ff88"; 
+    if (Math.abs(cents) <= 22) return "#ffaa00"; 
+    return "#ff4757"; 
 }
 
-// ============================================================================
-// RENDERIZADO DEL MEDIDOR ANALÓGICO EN CANVAS — SEMICÍRCULO CLÁSICO
-// El medidor va de izquierda (−50 ¢) a derecha (+50 ¢) en 180°.
-// El cero (0 ¢) está exactamente en la cúspide (parte superior central).
-// ============================================================================
 function drawMeter(cents, needleColor, isActive, isTuned) {
     const W = 640;
     const H = 320;
     ctx.clearRect(0, 0, W, H);
 
-    // Pivote de la aguja: parte inferior central
     const cx = W / 2;
     const cy = H - 30;
-    const R  = 240;  // radio del arco
+    const R  = 240;  
 
-    // Mapeado: −50 ¢ → ángulo π (izquierda), +50 ¢ → ángulo 0 (derecha)
-    // θ = π − ((cents + 50) / 100) × π
     function centsToAngle(c) {
         const clamped = Math.max(-50, Math.min(50, c));
         return Math.PI - ((clamped + 50) / 100) * Math.PI;
     }
 
-    // ── 1. ARCO DE FONDO (semicírculo completo) ─────────────────────────────
     ctx.beginPath();
     ctx.arc(cx, cy, R, Math.PI, 0, false);
     ctx.lineWidth = 5;
     ctx.strokeStyle = '#1a1d28';
     ctx.stroke();
 
-    // ── 2. ZONA VERDE DE TOLERANCIA (±10 ¢ alrededor del cero) ─────────────
-    const TOL = 10; // cents de cada lado
-    const tStart = centsToAngle(TOL);   // ángulo que corresponde a +10 ¢
-    const tEnd   = centsToAngle(-TOL);  // ángulo que corresponde a −10 ¢
-    // Nota: centsToAngle(+10) < centsToAngle(−10) en la escala de ángulos
+    const TOL = 10; 
+    const tStart = centsToAngle(TOL);   
+    const tEnd   = centsToAngle(-TOL);  
 
     ctx.beginPath();
     ctx.arc(cx, cy, R, tStart, tEnd, false);
@@ -677,7 +657,6 @@ function drawMeter(cents, needleColor, isActive, isTuned) {
     ctx.stroke();
     ctx.shadowBlur = 0;
 
-    // ── 3. GRADUACIONES (cada 5 ¢, marcas grandes cada 10 ¢) ────────────────
     for (let c = -50; c <= 50; c += 5) {
         const ang = centsToAngle(c);
         const isZero   = (c === 0);
@@ -713,7 +692,6 @@ function drawMeter(cents, needleColor, isActive, isTuned) {
         ctx.lineCap     = 'round';
         ctx.stroke();
 
-        // Etiquetas de los valores clave (saltar ±40)
         if (isMajor && c !== -40 && c !== 40) {
             const tr = R + 20;
             ctx.textAlign    = 'center';
@@ -731,7 +709,6 @@ function drawMeter(cents, needleColor, isActive, isTuned) {
         }
     }
 
-    // ── 4. MUESCA CENTRAL (triángulo en la cúspide del arco, en el 0) ────────
     ctx.save();
     ctx.translate(cx, cy - R + 4);
     ctx.beginPath();
@@ -749,7 +726,6 @@ function drawMeter(cents, needleColor, isActive, isTuned) {
     ctx.fill();
     ctx.restore();
 
-    // ── 5. AGUJA ANALÓGICA ───────────────────────────────────────────────────
     const nAngle  = centsToAngle(cents);
     const nCosA   = Math.cos(nAngle);
     const nSinA   = Math.sin(nAngle);
@@ -774,14 +750,12 @@ function drawMeter(cents, needleColor, isActive, isTuned) {
     ctx.lineCap     = 'round';
     ctx.stroke();
 
-    // Punta luminosa
     ctx.beginPath();
     ctx.arc(tipX, tipY, 4, 0, Math.PI * 2);
     ctx.fillStyle = '#ffffff';
     ctx.fill();
     ctx.restore();
 
-    // ── 6. PIVOTE CENTRAL ────────────────────────────────────────────────────
     ctx.beginPath();
     ctx.arc(cx, cy, 15, 0, Math.PI * 2);
     ctx.fillStyle = '#12141a';
@@ -796,5 +770,4 @@ function drawMeter(cents, needleColor, isActive, isTuned) {
     ctx.fill();
 }
 
-// Dibujar estado inicial
-drawMeter(0, '#44475a', false, false);
+drawMeter(0, '#44475a', false, false);

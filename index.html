@@ -1,9 +1,10 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Afinador Profesional de Precisión</title>
+    <title>Afinadisimo</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
@@ -12,28 +13,40 @@
             <div class="brand-icon">
                 <span class="brand-pulse"></span>
             </div>
-            <span class="brand-text">STUDIO TUNER PRO</span>
-            <button id="btn-calibration" class="calibration-badge" title="Haz clic para alternar entre 442 Hz y 440 Hz">
-                CAL: <span id="cal-freq">442</span> Hz
+            <span class="brand-text">AFINADISIMO</span>
+            <button id="btn-calibration" class="calibration-badge" title="Mostrar/Ocultar menú de afinación">
+                AFINACIÓN: <span id="cal-freq">442</span> Hz
             </button>
-            <span class="tolerance-badge" title="Tolerancia de afinación permitida: ±10 Hz de cada lado del cero">
-                TOL: ±10 Hz
-            </span>
         </div>
         <div class="menu-controls">
             <button id="btn-start" class="btn-play">▶ ENCENDER MIC</button>
             <button id="btn-stop" class="btn-stop" disabled>■ DETENER</button>
-            <button id="btn-test-tone" class="btn-test" title="Generar tono de referencia audible y verificar el centrado visual">♫ TONO REF (La)</button>
+            <button id="btn-test-tone" class="btn-test" title="Mostrar/Ocultar panel de referencia">♫ SONIDOS DE REFERENCIA</button>
         </div>
     </nav>
 
     <main class="tuner-dashboard">
+        <!-- 0. PANEL DE AJUSTE DE AFINACIÓN -->
+        <section id="tuning-menu" class="note-selection-card" style="display: none; margin-bottom: 20px;">
+            <div class="selection-top-bar" style="justify-content: center; flex-direction: column; gap: 10px;">
+                <div class="selection-title-group" style="justify-content: center;">
+                    <span class="selection-badge">⚙️ AFINACIÓN BASE</span>
+                    <span class="selection-subtitle">Ajusta la frecuencia de referencia (La 4)</span>
+                </div>
+                <div class="tuning-stepper">
+                    <button id="btn-tune-down" class="btn-step">-</button>
+                    <div class="stepper-value"><span id="menu-cal-freq">442</span> Hz</div>
+                    <button id="btn-tune-up" class="btn-step">+</button>
+                </div>
+            </div>
+        </section>
+
         <!-- 1. PANEL DE SELECCIÓN DE NOTA PARA AFINAR Y ESCUCHAR -->
-        <section class="note-selection-card">
+        <section id="ref-tone-menu" class="note-selection-card" style="display: none;">
             <div class="selection-top-bar">
                 <div class="selection-title-group">
                     <span class="selection-badge">🔊 TONO DE REFERENCIA</span>
-                    <span class="selection-subtitle">Selecciona una nota para escuchar su tono. El afinador detecta automáticamente lo que tocas.</span>
+                    <span class="selection-subtitle">Selecciona una nota para escuchar su tono.</span>
                 </div>
                     <div class="octave-picker">
                         <span class="picker-label">OCTAVA:</span>
