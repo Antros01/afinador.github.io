@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Afinador Profesional de Precisión</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <nav class="top-menu">
+        <div class="menu-brand">
+            <div class="brand-icon">
+                <span class="brand-pulse"></span>
+            </div>
+            <span class="brand-text">STUDIO TUNER PRO</span>
+            <button id="btn-calibration" class="calibration-badge" title="Haz clic para alternar entre 442 Hz y 440 Hz">
+                CAL: <span id="cal-freq">442</span> Hz
+            </button>
+            <span class="tolerance-badge" title="Tolerancia de afinación permitida: ±10 Hz de cada lado del cero">
+                TOL: ±10 Hz
+            </span>
+        </div>
+        <div class="menu-controls">
+            <button id="btn-start" class="btn-play">▶ ENCENDER MIC</button>
+            <button id="btn-stop" class="btn-stop" disabled>■ DETENER</button>
+            <button id="btn-test-tone" class="btn-test" title="Generar tono de referencia audible y verificar el centrado visual">♫ TONO REF (La)</button>
+        </div>
+    </nav>
+
+    <main class="tuner-dashboard">
+        <!-- 1. PANEL DE SELECCIÓN DE NOTA PARA AFINAR Y ESCUCHAR -->
+        <section class="note-selection-card">
+            <div class="selection-top-bar">
+                <div class="selection-title-group">
+                    <span class="selection-badge">🔊 TONO DE REFERENCIA</span>
+                    <span class="selection-subtitle">Selecciona una nota para escuchar su tono. El afinador detecta automáticamente lo que tocas.</span>
+                </div>
+                    <div class="octave-picker">
+                        <span class="picker-label">OCTAVA:</span>
+                        <div class="octave-buttons">
+                            <button class="octave-btn" data-octave="2" title="Octava 2 (Grave / Bajo)">2</button>
+                            <button class="octave-btn" data-octave="3" title="Octava 3 (Medio-Grave / Guitarra)">3</button>
+                            <button class="octave-btn active" data-octave="4" title="Octava 4 (Estándar Central)">4</button>
+                            <button class="octave-btn" data-octave="5" title="Octava 5 (Aguda / Violín)">5</button>
+                        </div>
+                    </div>
+            </div>
+
+            <!-- Selector de las 12 Notas de la Escala -->
+            <div class="scale-keyboard" id="scale-keyboard">
+                <button class="note-key" data-note-index="0">Do</button>
+                <button class="note-key accidental" data-note-index="1">Do#</button>
+                <button class="note-key" data-note-index="2">Re</button>
+                <button class="note-key accidental" data-note-index="3">Re#</button>
+                <button class="note-key" data-note-index="4">Mi</button>
+                <button class="note-key" data-note-index="5">Fa</button>
+                <button class="note-key accidental" data-note-index="6">Fa#</button>
+                <button class="note-key" data-note-index="7">Sol</button>
+                <button class="note-key accidental" data-note-index="8">Sol#</button>
+                <button class="note-key active" data-note-index="9">La</button>
+                <button class="note-key accidental" data-note-index="10">La#</button>
+                <button class="note-key" data-note-index="11">Si</button>
+            </div>
+
+            <!-- Botón Grande de Escuchar Afinación de la Nota Seleccionada -->
+            <div class="listen-action-bar">
+                <button id="btn-listen-active-note" class="btn-listen-active">
+                    <span class="listen-icon">🔊</span>
+                    <span id="listen-btn-label">ESCUCHAR AFINACIÓN (La 4 • 442.0 Hz)</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- 2. PANTALLA DIGITAL DE AFINACIÓN -->
+        <div class="digital-display">
+            <div class="note-container in-tune">
+                <span id="note-name">-</span><span id="note-octave"></span>
+            </div>
+            <div id="cents-pill" class="cents-pill neutral">0.0 CENTS (Δ 0.0 Hz)</div>
+            <div id="tuning-status" class="status-text">ESPERANDO SEÑAL...</div>
+        </div>
+
+        <!-- 3. GUÍA VISUAL DIRECCIONAL DE AFINACIÓN (±10 Hz ESTRICTOS) -->
+        <div class="tuning-guide">
+            <div id="guide-flat" class="guide-item guide-flat" title="La nota está baja (más de 10 Hz por debajo del cero)">
+                <span class="guide-arrow">◀</span>
+                <span class="guide-label">BEMOL (&gt;10Hz)</span>
+            </div>
+            <div id="guide-center" class="guide-item guide-center" title="Afinado dentro de la tolerancia estricta de ±10 Hz del cero">
+                <div class="center-bezel">
+                    <span class="guide-icon">◆</span>
+                </div>
+                <span class="guide-label">EN TONO (±10Hz)</span>
+            </div>
+            <div id="guide-sharp" class="guide-item guide-sharp" title="La nota está alta (más de 10 Hz por encima del cero)">
+                <span class="guide-label">SOSTENIDO (&gt;10Hz)</span>
+                <span class="guide-arrow">▶</span>
+            </div>
+        </div>
+
+        <!-- 4. MEDIDOR ANALÓGICO CON TOLERANCIA ESTRICTA (-10 a +10) -->
+        <div class="meter-section">
+            <canvas id="meter-canvas" width="640" height="320"></canvas>
+        </div>
+
+        <!-- 5. TELEMETRÍA EN TIEMPO REAL -->
+        <div class="telemetry-grid">
+            <div class="telemetry-box">
+                <span class="label">FRECUENCIA DETECTADA</span>
+                <span class="value"><span id="freq-display">0.00</span> <small>Hz</small></span>
+            </div>
+            <div class="telemetry-box">
+                <span class="label">DESVIACIÓN DEL CERO</span>
+                <span class="value">
+                    <span id="cents-display">0.0</span> <small>Cents</small>
+                    <span id="hz-diff-display" class="hz-diff-value">Δ 0.0 Hz</span>
+                </span>
+            </div>
+            <div class="telemetry-box">
+                <span class="label">FRECUENCIA OBJETIVO</span>
+                <span class="value"><span id="target-freq-display">442.00</span> <small>Hz</small></span>
+            </div>
+            <div class="telemetry-box">
+                <span class="label">CALIDAD DE SEÑAL</span>
+                <span class="value"><span id="signal-display">--</span></span>
+            </div>
+        </div>
+    </main>
+
+    <script src="tuner.js"></script>
+</body>
+</html>
